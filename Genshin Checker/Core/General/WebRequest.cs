@@ -204,32 +204,34 @@ namespace Genshin_Checker.Core
         /// <returns>ファイル</returns>
         public static async Task<byte[]?> GetRequest(string? url, CancellationToken? token = null)
         {
-            if (url == null) return null;
-            var uri = new Uri(url);
-            bool IsQuery = url.Contains('?');
-            var filename = GetCachePath(MD5Hash(url));
-            var directory = Path.GetDirectoryName(filename);
-            if (directory != null && !Directory.Exists(directory)) Directory.CreateDirectory(directory);
-            if (!IsQuery && File.Exists(filename))
+            try
             {
-                try
+                if (url == null) return null;
+                var uri = new Uri(url);
+                bool IsQuery = url.Contains('?');
+                var filename = GetCachePath(MD5Hash(url));
+                var directory = Path.GetDirectoryName(filename);
+                if (directory != null && !Directory.Exists(directory)) Directory.CreateDirectory(directory);
+                if (!IsQuery && File.Exists(filename))
                 {
-                    using FileStream fs = new(filename, FileMode.Open);
-                    using GZipStream zipStream = new(fs, CompressionMode.Decompress);
-                    using MemoryStream cacheout = new();
-                    zipStream.CopyTo(cacheout);
-                    Log.Debug($"Cache ({fs.Length}->{cacheout.Length}) : {url}");
-                    return cacheout.ToArray();
+                    try
+                    {
+                        using FileStream fs = new(filename, FileMode.Open);
+                        using GZipStream zipStream = new(fs, CompressionMode.Decompress);
+                        using MemoryStream cacheout = new();
+                        zipStream.CopyTo(cacheout);
+                        Log.Debug($"Cache ({fs.Length}->{cacheout.Length}) : {url}");
+                        return cacheout.ToArray();
+                    }
+                    catch (Exception ex)
+                    {
+                        Log.Warn($"Failed to load cache from {filename}\nReason : {ex.Message}");
+                    }
                 }
-                catch (Exception ex)
-                {
-                    Log.Warn($"Failed to load cache from {filename}\nReason : {ex.Message}");
-                }
-            }
-            Stopwatch stopwatch = new();
-            stopwatch.Start();
-            var root = $"{uri.Scheme}://{uri.Host}";
-            Dictionary<string, string> headers = new()
+                Stopwatch stopwatch = new();
+                stopwatch.Start();
+                var root = $"{uri.Scheme}://{uri.Host}";
+                Dictionary<string, string> headers = new()
                 {
                     { "Origin", root },
                     { "Referer", root },
@@ -241,52 +243,57 @@ namespace Genshin_Checker.Core
                     { "x-rpc-language", "en-us" },
                     { "User-Agent", $"Genshin Checker/{System.Reflection.Assembly.GetExecutingAssembly().GetName().Version}" },
                 };
-            HttpClient client = new();
-            client.DefaultRequestHeaders.Clear();
-            foreach (KeyValuePair<string, string> header in headers)
-                client.DefaultRequestHeaders.Add(header.Key, header.Value);
-            HttpResponseMessage response = new();
-            for (int i = 0; i < 10; i++)
-            {
-                try
+                HttpClient client = new();
+                client.DefaultRequestHeaders.Clear();
+                foreach (KeyValuePair<string, string> header in headers)
+                    client.DefaultRequestHeaders.Add(header.Key, header.Value);
+                HttpResponseMessage response = new();
+                for (int i = 0; i < 10; i++)
                 {
-                    if (token == null) response = await client.GetAsync(url);
-                    else response = await client.GetAsync(url, (CancellationToken)token);
-                    if (!response.IsSuccessStatusCode)
+                    try
                     {
-                        Log.Error($"Fetch Error: {response.StatusCode} - {url}");
-                        throw new ArgumentException($"Error: {response.StatusCode} - {url}");
+                        if (token == null) response = await client.GetAsync(url);
+                        else response = await client.GetAsync(url, (CancellationToken)token);
+                        if (!response.IsSuccessStatusCode)
+                        {
+                            Log.Error($"Fetch Error: {response.StatusCode} - {url}");
+                            throw new ArgumentException($"Error: {response.StatusCode} - {url}");
+                        }
+                        break;
                     }
-                    break;
+                    catch (Exception ex)
+                    {
+                        Log.Debug(ex.Message);
+                        if (i == 9)
+                        {
+                            return null;
+                        }
+                        continue;
+                    }
                 }
-                catch (Exception ex)
+                var stream = await response.Content.ReadAsStreamAsync();
+                if (!IsQuery)
                 {
-                    Log.Debug(ex.Message);
-                    if (i == 9)
-                    {
-                        return null;
-                    }
-                    continue;
+                    using FileStream stream2 = new(filename, FileMode.Create);
+                    using GZipStream zipStream = new(stream2, CompressionMode.Compress);
+                    stream.CopyTo(zipStream);
+                    zipStream.Close();
                 }
-            }
-            var stream = await response.Content.ReadAsStreamAsync();
-            if (!IsQuery)
+                Log.Debug($"Downloaded ({stream.Length:#,##0} Bytes / {stopwatch.ElapsedMilliseconds / 1000.0:0.00} sec) : {url}");
+                byte[] buffer = new byte[16 * 1024];
+                using MemoryStream ms = new();
+                stream.Position = 0;
+                int read;
+                while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
+                {
+                    ms.Write(buffer, 0, read);
+                }
+                return ms.ToArray();
+            }catch(Exception ex)
             {
-                using FileStream stream2 = new(filename, FileMode.Create);
-                using GZipStream zipStream = new(stream2, CompressionMode.Compress);
-                stream.CopyTo(zipStream);
-                zipStream.Close();
+                Log.Error(ex);
+                return null;
             }
-            Log.Debug($"Downloaded ({stream.Length:#,##0} Bytes / {stopwatch.ElapsedMilliseconds / 1000.0:0.00} sec) : {url}");
-            byte[] buffer = new byte[16 * 1024];
-            using MemoryStream ms = new();
-            stream.Position = 0;
-            int read;
-            while ((read = stream.Read(buffer, 0, buffer.Length)) > 0)
-            {
-                ms.Write(buffer, 0, read);
-            }
-            return ms.ToArray();
         }
         /// <summary>
         /// 画像の取得リクエスト
