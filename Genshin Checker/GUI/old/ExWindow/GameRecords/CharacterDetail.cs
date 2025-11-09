@@ -95,7 +95,16 @@ namespace Genshin_Checker.Window.ExWindow.GameRecords
                 //概要
                 label1.Text = $"{name}";
                 label2.Text = string.Format(Localize.UI_Character_Level, CharacterInfo.baseInfo.level);
-                label4.Text = CharacterInfo.baseInfo.fetter>0?string.Format(Localize.UI_FriendshipLevel, CharacterInfo.baseInfo.fetter):"";
+                label4.Text = CharacterInfo.baseInfo.fetter > 0 ? string.Format(Localize.UI_FriendshipLevel, CharacterInfo.baseInfo.fetter) : "";
+                if (staticinfo?.Profile.Description.TryGetValue(LocalizeManager.CurrentShort, out var desc) == true)
+                {
+                    LabelCharacterDescription.Text = desc;
+                    LabelCharacterDescription.Visible = true;
+                }
+                else
+                {
+                    LabelCharacterDescription.Visible = false;
+                }
                 int constellation = CharacterInfo.constellations.FindAll(a => a.is_actived).Count;
                 if (constellation == 0) label5.Text = "";
                 else if (constellation == 6) label5.Text = Localize.UI_ConstellationLevelMax;
@@ -125,13 +134,13 @@ namespace Genshin_Checker.Window.ExWindow.GameRecords
                 try
                 {
                     var data = await account.CharacterDetail.GetData(characterID);
-                    var list = data.skills.FindAll(a =>  Core.General.Convert.Character.GetSkillGrowthable(a.skill_id) && a.skill_type==1);
+                    var list = data.skills.FindAll(a => Core.General.Convert.Character.GetSkillGrowthable(a.skill_id) && a.skill_type == 1);
                     list.Reverse();
                     int cnt = 0;
                     foreach (var main in list)
                     {
-                        int? triggerConstellations=null;
-                        int add_levels=0;
+                        int? triggerConstellations = null;
+                        int add_levels = 0;
                         bool enabled = false;
                         switch (cnt)
                         {
@@ -152,17 +161,19 @@ namespace Genshin_Checker.Window.ExWindow.GameRecords
                         {
                             enabled = true;
                         }
-                        var info = new TalentInfo(main.icon, main.name, string.Format(Localize.UI_Talent_Level, main.level+(enabled?add_levels:0)),enabled, "概要をここに(未実装)");
+                        var info = new TalentInfo(main.icon, main.name, string.Format(Localize.UI_Talent_Level, main.level + (enabled ? add_levels : 0)), enabled, "概要をここに(未実装)");
                         info.Dock = DockStyle.Top;
                         Panel_MainTalent.Controls.Add(info);
                         MainTalent.Add(info);
                         cnt++;
                     }
-                    list = data.skills.FindAll(a => a.skill_type == 2);
-                    list.Reverse();
-                    foreach (var sub in list)
+                    var li = data.skills.FindAll(a => { foreach (var b in list) if (b.skill_id == a.skill_id) return false; return true; });
+                    li.Reverse();
+                    foreach (var sub in li)
                     {
-                        var info = new TalentInfo(sub.icon, sub.name, $"",false, "概要をここに(未実装)");
+                        var level = "";
+                        if (sub.level > 1) level = string.Format(Localize.UI_Talent_Level, sub.level);
+                        var info = new TalentInfo(sub.icon, sub.name, level, false, "概要をここに(未実装)");
                         info.Dock = DockStyle.Top;
                         Panel_SubTalent.Controls.Add(info);
                         SubTalent.Add(info);
@@ -254,18 +265,19 @@ namespace Genshin_Checker.Window.ExWindow.GameRecords
                     {
                         var b = new Button();
                         b.Text = controlname;
-                        b.Click += (s, e) => { new WebMiniBrowser(new($"https://static-api.misaki-chan.world/embed/youtube.html?v={ytid}&t={System.Web.HttpUtility.UrlEncode(title)}"), size: new(1280, 720+ SystemInformation.CaptionHeight+7), urlboxshow: false).Show(); };
+                        b.Click += (s, e) => { new WebMiniBrowser(new($"https://static-api.misaki-chan.world/embed/youtube.html?v={ytid}&t={System.Web.HttpUtility.UrlEncode(title)}"), size: new(1280, 720 + SystemInformation.CaptionHeight + 7), urlboxshow: false).Show(); };
                         b.AutoSize = true;
                         VideoListPanel.Controls.Add(b);
                         TrailerVideoButtons.Add(b);
                         groupBox5.Visible = true;
                     });
-                    var addsong = new Action<string,string,string>((string controlname,string url,string title) =>
+                    var addsong = new Action<string, string, string>((string controlname, string url, string title) =>
                     {
                         var b = new Button();
                         b.Text = controlname;
-                        b.Click += (s, e) => {
-                            Player.Instance.AddQueue($"https://static-api.misaki-chan.world/{url}",title);
+                        b.Click += (s, e) =>
+                        {
+                            Player.Instance.AddQueue($"https://static-api.misaki-chan.world/{url}", title);
                             Genshin_Checker.Core.General.ManageWindow.OpenWindow(null, nameof(MusicPlayer));
                         };
                         b.AutoSize = true;
@@ -276,21 +288,21 @@ namespace Genshin_Checker.Window.ExWindow.GameRecords
                     foreach (var video in staticinfo.Wiki.Video)
                     {
                         string title = video.Key;
-                        if(Misaki_chan.Data.Info?.Localize.Wiki.TryGetValue("video",out var LocalizeVideo) == true&&
-                            LocalizeVideo.TryGetValue(video.Key,out var Video)&&
-                            Video.TryGetValue(LocalizeManager.CurrentShort,out var text))
+                        if (Misaki_chan.Data.Info?.Localize.Wiki.TryGetValue("video", out var LocalizeVideo) == true &&
+                            LocalizeVideo.TryGetValue(video.Key, out var Video) &&
+                            Video.TryGetValue(LocalizeManager.CurrentShort, out var text))
                         {
                             title = text;
                         }
                         foreach (var lang in video.Value)
                         {
                             string langname;
-                            if(lang.Key == "none")
+                            if (lang.Key == "none")
                             {
                                 langname = "";
                             }
                             else if (Misaki_chan.Data.Info?.Localize.Lang.TryGetValue(LocalizeManager.CurrentShort, out var LocalizeLang) == true &&
-                            LocalizeLang.TryGetValue(lang.Key,out var languageText))
+                            LocalizeLang.TryGetValue(lang.Key, out var languageText))
                             {
                                 langname = $" ({languageText})";
                             }
@@ -310,8 +322,8 @@ namespace Genshin_Checker.Window.ExWindow.GameRecords
                         {
                             MusicText = text;
                         }
-                        addsong(MusicText, music.Value.Path, 
-                            music.Value.Title.TryGetValue(LocalizeManager.CurrentShort, out var lng) ? lng : 
+                        addsong(MusicText, music.Value.Path,
+                            music.Value.Title.TryGetValue(LocalizeManager.CurrentShort, out var lng) ? lng :
                             music.Value.Title.TryGetValue("en", out var lng2) ? lng2 : Common.Unknown);
                     }
 
@@ -320,7 +332,7 @@ namespace Genshin_Checker.Window.ExWindow.GameRecords
                 VideoListPanel.ResumeLayout(true);
                 //キャラクターストーリー
                 GroupCharacterStory.SuspendLayout();
-                foreach(var ui in CharacterStories)
+                foreach (var ui in CharacterStories)
                 {
                     GroupCharacterStory.Controls.Remove(ui);
                     ui.Dispose();
@@ -330,7 +342,7 @@ namespace Genshin_Checker.Window.ExWindow.GameRecords
                 if (charastory != null)
                 {
                     GroupCharacterStory.Visible = true;
-                    for(int i=charastory.Story.Count-1;i>=0;i--)
+                    for (int i = charastory.Story.Count - 1; i >= 0; i--)
                     {
                         var story = charastory.Story.ElementAt(i);
                         string lang = story.Key;
@@ -343,7 +355,7 @@ namespace Genshin_Checker.Window.ExWindow.GameRecords
                                 }
                         string? UnlockInfomation = null;
                         string title = story.Value.Title ?? lang;
-                        if (staticinfo!=null&&staticinfo.Unlocks.Story.TryGetValue(story.Key, out var unlocks))
+                        if (staticinfo != null && staticinfo.Unlocks.Story.TryGetValue(story.Key, out var unlocks))
                         {
                             bool IsUnlocked = false;
                             if (unlocks.Conditions.friendship != null && CharacterInfo.baseInfo.fetter >= unlocks.Conditions.friendship) IsUnlocked = true;
@@ -353,9 +365,10 @@ namespace Genshin_Checker.Window.ExWindow.GameRecords
                                 UnlockInfomation = "このストーリーが解禁される時はまだ訪れていません。";
                                 IsUnlocked = false;
                             }
-                            if (!IsUnlocked&&unlocks.IsHiddenTitle) title = "???";
-                        };
-                        var ui = new CharacterStory(title, UnlockInfomation, story.Value.Text,UnlockInfomation!=null);
+                            if (!IsUnlocked && unlocks.IsHiddenTitle) title = "???";
+                        }
+                        ;
+                        var ui = new CharacterStory(title, UnlockInfomation, story.Value.Text, UnlockInfomation != null);
                         ui.Dock = DockStyle.Top;
                         ui.BorderStyle = BorderStyle.FixedSingle;
                         GroupCharacterStory.Controls.Add(ui);
@@ -428,6 +441,11 @@ namespace Genshin_Checker.Window.ExWindow.GameRecords
 
         private void CharacterDetail_FormClosed(object sender, FormClosedEventArgs e)
         {
+        }
+
+        private void panel6_Resize(object sender, EventArgs e)
+        {
+            LabelCharacterDescription.MaximumSize = new(panel6.Size.Width, 0);
         }
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Genshin_Checker.Core.General;
+using Genshin_Checker.Model.UserData.ImaginariumTheater.v3;
 using Genshin_Checker.Model.UserData.ImaginariumTheater.v2;
 using Genshin_Checker.Model.UserData.ImaginariumTheater.v1;
 using Genshin_Checker.Resource.Languages;
@@ -17,7 +18,7 @@ namespace Genshin_Checker.Core.HoYoLab
         }
         private Model.HoYoLab.RoleCombat.Data? RoleCombat = null;
         private string REG_PATH { get => $"UserData\\{account.UID}\\ImaginariumTheater"; }
-        public V2? Current { get; private set; }
+        public V3? Current { get; private set; }
         bool IsFirstCheck = false;
         internal async void Timeout_Tick(object? sender, EventArgs e)
         {
@@ -39,26 +40,27 @@ namespace Genshin_Checker.Core.HoYoLab
                 Log.Error(ex);
             }
         }
-        public async Task<V2> Load(int id)
+        public async Task<V3> Load(int id)
         {
             var path = Registry.GetValue(REG_PATH, $"{id}", true) ?? throw new IOException(Localize.Error_SpiralAbyssFile_RegistryNotFound);
             var data = await AppData.LoadUserData(path);
             if (string.IsNullOrEmpty(data)) throw new InvalidDataException("Data is empty.");
             var ver = JsonChecker<Model.UserData.DatabaseRoot>.Check(data ?? "{}");
-            V2? v2 = (ver?.Version) switch
+            V3? v3 = (ver?.Version) switch
             {
                 null => throw new InvalidDataException(Localize.Error_SpiralAbyssFile_InvalidFileVersion),
-                1 => Model.UserData.ImaginariumTheater.Convert.FromV1(JsonChecker<V1>.Check(data ?? "")),
-                2 => JsonChecker<V2>.Check(data ?? ""),
+                1 => Model.UserData.ImaginariumTheater.Convert.FromV2(Model.UserData.ImaginariumTheater.Convert.FromV1(JsonChecker<V1>.Check(data ?? ""))),
+                2 => Model.UserData.ImaginariumTheater.Convert.FromV2(JsonChecker<V2>.Check(data ?? "")),
+                3 => JsonChecker<V3>.Check(data ?? ""),
                 _ => throw new InvalidDataException(string.Format(Localize.Error_SpiralAbyssFile_UnknownFileVersion, ver.Version)),
             } ?? throw new InvalidDataException(Localize.Error_SpiralAbyssFile_FailedConvert);
-            if (ver?.Version < 2)
+            if (ver?.Version < 3)
             {
                 Log.Info("バージョンアップグレードします。");
-                await Save(v2);
+                await Save(v3);
             }
-            if (v2.UID != account.UID) throw new InvalidDataException(string.Format(Localize.Error_SpiralAbyssFile_DoesNotMatchUID, v2.UID, account.UID));
-            return v2;
+            if (v3.UID != account.UID) throw new InvalidDataException(string.Format(Localize.Error_SpiralAbyssFile_DoesNotMatchUID, v3.UID, account.UID));
+            return v3;
         }
         public async Task<Model.HoYoLab.RoleCombat.Data> GetData()
         {
@@ -67,16 +69,16 @@ namespace Genshin_Checker.Core.HoYoLab
             return data;
         }
 
-        private async Task Save(V2 v2)
+        private async Task Save(V3 v3)
         {
-            string? path = Registry.GetValue(REG_PATH, $"{v2.Data.schedule_id}", true);
+            string? path = Registry.GetValue(REG_PATH, $"{v3.Data.schedule_id}", true);
             if (path == null)
             {
                 path = AppData.GetRandomPath();
-                Registry.SetValue(REG_PATH, $"{v2.Data.schedule_id}", path, true);
+                Registry.SetValue(REG_PATH, $"{v3.Data.schedule_id}", path, true);
 
             }
-            await AppData.SaveUserData(path, JsonConvert.SerializeObject(v2));
+            await AppData.SaveUserData(path, JsonConvert.SerializeObject(v3));
         }
         private async Task<int> SaveDatabase(Model.HoYoLab.RoleCombat.Data raw)
         {
@@ -84,7 +86,7 @@ namespace Genshin_Checker.Core.HoYoLab
             int CountOfNewData = 0;
             foreach (var index in raw.data)
             {
-                var userdata = new V2();
+                var userdata = new V3();
                 #region ユーザーデータベースから過去の情報読み出し
                 Log.Debug($"幻想シアター {index.schedule.schedule_id} 期");
                 var path = Registry.GetValue(REG_PATH, $"{index.schedule.schedule_id}", true);
@@ -100,7 +102,7 @@ namespace Genshin_Checker.Core.HoYoLab
                 #region 取得したデータが重複しているかチェック
                 userdata.UID = account.UID;
                 userdata.UpdateUTC = DateTime.UtcNow;
-                userdata.Version = 2; //v1
+                userdata.Version = 3; //v1
                 var starttime = DateTime.MaxValue;
                 var endtime = DateTime.MinValue;
                 foreach (var round in index.detail?.rounds_data ?? new())
@@ -159,6 +161,7 @@ namespace Genshin_Checker.Core.HoYoLab
                 userdata.Data.CurrentStats.coin_num = index.stat.coin_num;
                 userdata.Data.CurrentStats.difficulty_id = index.stat.difficulty_id;
                 userdata.Data.CurrentStats.get_medal_round_list.Clear();
+                userdata.Data.CurrentStats.tarot_finished_cnt = index.stat.tarot_finished_cnt;
                 foreach (var i in index.stat.get_medal_round_list) userdata.Data.CurrentStats.get_medal_round_list.Add(i);
 
                 game.backup_avatars.Clear();
@@ -246,6 +249,8 @@ namespace Genshin_Checker.Core.HoYoLab
                             finish_time = Time.GetUTCFromUnixTime(finishTime),
                             round_id = round.round_id,
                             is_get_medal = round.is_get_medal,
+                            is_tarot = round.is_tarot,
+                            tarot_serial_no = round.talot_serial_no,
                         });
                         var roundsdata = game.rounds_data[^1];
                         foreach (var avatar in round.avatars)
@@ -313,11 +318,12 @@ namespace Genshin_Checker.Core.HoYoLab
                 #endregion
                 CountOfNewData++;
                 Log.Debug($"データ : {game.FinalRoundTime.AddHours(9)} 難易度{game.Stats.difficulty_id} ☆{game.Stats.medal_num}");
-                if (IsNewData)
+                if (IsNewData && game.FirstRoundTime != DateTime.MaxValue && game.FinalRoundTime != DateTime.MinValue)
                 {
                     Log.Debug($"→今回取得したデータは新しい為追加します。");
                     userdata.Data.Detail.Add(game);
                 }
+                userdata.Data.Detail.RemoveAll(a => a.FinalRoundTime == DateTime.MinValue && a.FirstRoundTime == DateTime.MaxValue);
                 await Save(userdata);
                 Log.Info($"第 {userdata.Data.schedule_id} 期保存しました。");
             }

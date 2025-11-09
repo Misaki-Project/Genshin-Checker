@@ -159,6 +159,8 @@ namespace Genshin_Checker.Model.HoYoLab.RoleCombat
         public List<Buff> choice_cards { get; set; } = new();
         public List<Buff> buffs { get; set; } = new();
         public bool is_get_medal { get; set; }
+        public bool is_tarot { get; set; }
+        public int talot_serial_no { get; set; }
         public int round_id { get; set; }
         public string finish_time { get; set; } = "";
         public DateTimeInfo finish_date_time { get; set; } = new();
@@ -239,5 +241,6 @@ namespace Genshin_Checker.Model.HoYoLab.RoleCombat
         public int coin_num { get; set; }
         public int avatar_bonus_num { get; set; }
         public int rent_cnt { get; set; }
+        public int tarot_finished_cnt { get; set; }
     }
 }

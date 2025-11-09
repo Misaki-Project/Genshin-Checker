@@ -51,6 +51,8 @@
             GroupCharacterStory = new GroupBox();
             groupBox5 = new GroupBox();
             VideoListPanel = new FlowLayoutPanel();
+            panel6 = new Panel();
+            LabelCharacterDescription = new Label();
             panel4 = new Panel();
             label4 = new Label();
             panel3 = new Panel();
@@ -69,6 +71,7 @@
             Error_TalentPanel.SuspendLayout();
             tabPage2.SuspendLayout();
             groupBox5.SuspendLayout();
+            panel6.SuspendLayout();
             panel4.SuspendLayout();
             panel3.SuspendLayout();
             ((System.ComponentModel.ISupportInitialize)pictureBox1).BeginInit();
@@ -198,6 +201,7 @@
             resources.ApplyResources(tabPage2, "tabPage2");
             tabPage2.Controls.Add(GroupCharacterStory);
             tabPage2.Controls.Add(groupBox5);
+            tabPage2.Controls.Add(panel6);
             tabPage2.Name = "tabPage2";
             tabPage2.UseVisualStyleBackColor = true;
             // 
@@ -218,6 +222,19 @@
             // 
             resources.ApplyResources(VideoListPanel, "VideoListPanel");
             VideoListPanel.Name = "VideoListPanel";
+            // 
+            // panel6
+            // 
+            resources.ApplyResources(panel6, "panel6");
+            panel6.Controls.Add(LabelCharacterDescription);
+            panel6.Name = "panel6";
+            panel6.Resize += panel6_Resize;
+            // 
+            // LabelCharacterDescription
+            // 
+            LabelCharacterDescription.AutoEllipsis = true;
+            resources.ApplyResources(LabelCharacterDescription, "LabelCharacterDescription");
+            LabelCharacterDescription.Name = "LabelCharacterDescription";
             // 
             // panel4
             // 
@@ -289,6 +306,8 @@
             tabPage2.PerformLayout();
             groupBox5.ResumeLayout(false);
             groupBox5.PerformLayout();
+            panel6.ResumeLayout(false);
+            panel6.PerformLayout();
             panel4.ResumeLayout(false);
             panel4.PerformLayout();
             panel3.ResumeLayout(false);
@@ -328,5 +347,7 @@
         private GroupBox groupBox5;
         private FlowLayoutPanel VideoListPanel;
         private GroupBox GroupCharacterStory;
+        private Label LabelCharacterDescription;
+        private Panel panel6;
     }
 }
