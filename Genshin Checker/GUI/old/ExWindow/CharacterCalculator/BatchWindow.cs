@@ -88,6 +88,7 @@ namespace Genshin_Checker.Window.ExWindow.CharacterCalculator
             if (sender is NumericUpDown num)
             {
                 TrackBar pair = ValuePairs.First(a => a.Key == num).Value;
+                if (pair.Maximum < (int)num.Value) pair.Maximum = (int)num.Value;
                 pair.Value = (int)num.Value;
             }
         }
