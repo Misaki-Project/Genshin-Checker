@@ -12,6 +12,7 @@ namespace Genshin_Checker.Core.HoYoLab
             ServerUpdate.Start();
         }
         Model.HoYoLab.CharacterDetailResult.Data? Cached;
+        Model.HoYoLab.BatchAvaterListGet.Data? CachedAvater;
         public DateTime LatestUpdateTime = DateTime.MinValue;
         readonly SemaphoreSlim UpdateSemaphore = new(1, 1);
 
@@ -26,7 +27,7 @@ namespace Genshin_Checker.Core.HoYoLab
         {
             Log.Debug($"天賦レベル取得");
             ServerUpdate.Stop();
-            ServerUpdate.Interval = 3600000*6;
+            ServerUpdate.Interval = 60000*30;
             if (await UpdateGameData(true)) Log.Info("キャラクターの更新に成功");
             else
             {
@@ -85,6 +86,7 @@ namespace Genshin_Checker.Core.HoYoLab
                 }
                 var data2 = await account.Endpoint.GetCharactersDetail(charaids);
                 Cached = data2;
+                CachedAvater = await account.Endpoint.BatchAvaterList();
                 foreach (var character in characters.list)
                 {
                     for (int i = 0; i < 30; i++)
@@ -134,6 +136,10 @@ namespace Genshin_Checker.Core.HoYoLab
         public List<Model.HoYoLab.CharacterDetailResult.Character> CachedCharacters()
         {
             return Cached?.list??new();
+        }
+        public List<Model.HoYoLab.BatchAvaterListGet.Character> CachedAvaterList()
+        {
+            return CachedAvater?.list ?? new();
         }
         public async Task<bool> IsReadyCacheData(int Timeout = -1)
         {

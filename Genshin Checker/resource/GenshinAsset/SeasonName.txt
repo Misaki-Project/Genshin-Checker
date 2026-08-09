@@ -41,15 +41,14 @@ Ver.5.5
 Ver.5.6
 Ver.5.7
 Ver.5.8
-Ver.6.0
-Ver.6.1
-Ver.6.2
-Ver.6.3
-Ver.6.4
-Ver.6.5
-Ver.6.6
-Ver.6.7
-Ver.6.8
+Luna I
+Luna II
+Luna III
+Luna IV
+Luna V
+Luna VI
+Luna VII
+Luna VIII
 Ver.7.0
 Ver.7.1
 Ver.7.2
@@ -59,3 +58,12 @@ Ver.7.5
 Ver.7.6
 Ver.7.7
 Ver.7.8
+Ver.8.0
+Ver.8.1
+Ver.8.2
+Ver.8.3
+Ver.8.4
+Ver.8.5
+Ver.8.6
+Ver.8.7
+Ver.8.8

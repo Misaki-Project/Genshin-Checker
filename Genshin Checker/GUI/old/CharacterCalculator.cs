@@ -64,47 +64,51 @@ namespace Genshin_Checker.Window
                 var Data = await account.Characters.GetData();
                 var characters = Data.list.FindAll(a => true);
                 var userdata = DataLoad();
+                var avaterInfo = account.CharacterDetail.CachedAvaterList();
                 for (int i = 0; i < characters.Count; i++)
                 {
                     try
                     {
                         var character = characters[i];
+                        var avater = avaterInfo.Find(a => a.id == character.id);
+                        if (avater == null) throw new InvalidDataException("prop is not found");
                         var charainfo = await account.CharacterDetail.GetData(character.id);
-                        var talent = charainfo.skills.FindAll(a => Core.General.Convert.Character.GetSkillGrowthable(a.skill_id, character.id) && a.skill_type == 1);
-                        talent.Sort((a, b) => a.skill_id - b.skill_id);
+                        var skilllist = avater.skill_list.FindAll(b => b.max_level >= 10);
+                        //var talent = charainfo.skills.FindAll(a => skilllist.Find(b=>a.skill_id == b.id)!=null);
+                        //talent.Sort((a, b) => a.skill_id - b.skill_id);
                         var set = userdata.Datas.FirstOrDefault(a => a.Key == character.id);
 
                         var staticinfo = Misaki_chan.Data.Characters?.Data.Find(a => a.Id == character.id);
-                        var enkainfo = Character.GetEnkaCharaID(talent[0].skill_id, talent[1].skill_id, talent[2].skill_id);
-                        if (enkainfo == null) throw new InvalidDataException("enka is not found");
+                        //var enkainfo = Character.GetEnkaCharaID(talent[0].skill_id, talent[1].skill_id, talent[2].skill_id);
+                        //if (enkainfo == null) throw new InvalidDataException("enka is not found");
                         var setdata = set.Value ?? new();
-                        if (talent.Count != 3)
-                            throw new InvalidDataException(Localize.Error_CharacterCalculator_InvalidTalentCount);
+                        //if (talent.Count != 3)
+                        //    throw new InvalidDataException(Localize.Error_CharacterCalculator_InvalidTalentCount);
 
-                        var enka = Store.EnkaData.Data?.Characters?[enkainfo];
-                        var normal = talent.Find(a => enka?.SkillOrder[0] == a.skill_id);
-                        var skill = talent.Find(a => enka?.SkillOrder[1] == a.skill_id);
-                        var burst = talent.Find(a => enka?.SkillOrder[2] == a.skill_id);
+                        //var enka = Store.EnkaData.Data?.Characters?[enkainfo];
+                        var normal = skilllist[0];//.Find(a => enka?.SkillOrder[0] == a.skill_id);
+                        var skill = skilllist[1];//.Find(a => enka?.SkillOrder[1] == a.skill_id);
+                        var burst = skilllist[2];//.Find(a => enka?.SkillOrder[2] == a.skill_id);
                         if (normal == null || skill == null || burst == null)
                         {
                             throw new InvalidDataException();
                         }
-                        int normaladd = 0;
-                        int skilladd = 0;
-                        int burstadd = 0;
-                        normaladd = staticinfo?.Skills.Upgrade_skills.Normal?.Constellations <= character.actived_constellation_num ? staticinfo?.Skills.Upgrade_skills.Normal?.Add_level ?? 0 : 0;
-                        skilladd = staticinfo?.Skills.Upgrade_skills.Skill?.Constellations <= character.actived_constellation_num ? staticinfo?.Skills.Upgrade_skills.Skill?.Add_level ?? 0 : 0;
-                        burstadd = staticinfo?.Skills.Upgrade_skills.Burst?.Constellations <= character.actived_constellation_num ? staticinfo?.Skills.Upgrade_skills.Burst?.Add_level ?? 0 : 0;
-                        if (normal.level - normaladd < 1) normaladd = 0;
-                        if (skill.level - skilladd < 1) skilladd = 0;
-                        if (burst.level - burstadd < 1) burstadd = 0;
+                        //int normaladd = 0;
+                        //int skilladd = 0;
+                        //int burstadd = 0;
+                        //normaladd = staticinfo?.Skills.Upgrade_skills.Normal?.Constellations <= character.actived_constellation_num ? staticinfo?.Skills.Upgrade_skills.Normal?.Add_level ?? 0 : 0;
+                        //skilladd = staticinfo?.Skills.Upgrade_skills.Skill?.Constellations <= character.actived_constellation_num ? staticinfo?.Skills.Upgrade_skills.Skill?.Add_level ?? 0 : 0;
+                        //burstadd = staticinfo?.Skills.Upgrade_skills.Burst?.Constellations <= character.actived_constellation_num ? staticinfo?.Skills.Upgrade_skills.Burst?.Add_level ?? 0 : 0;
+                        //if (normal.level - normaladd < 1) normaladd = 0;
+                        //if (skill.level - skilladd < 1) skilladd = 0;
+                        //if (burst.level - burstadd < 1) burstadd = 0;
                         //Todo: character.weapon.typeをIDから名称に変換する
                         CharacterView.Rows.Add(setdata.Enabled, character.id, character.rarity, Element.GetElementEnum(character.element), character.name, Character.GetWeaponTypeName(character.weapon.type), character.fetter, character.level,
-                            normal.level - normaladd, skill.level - skilladd, burst.level - burstadd, "",
+                            normal.level_current, skill.level_current, burst.level_current, "",
                             character.level > setdata.SetLevel ? character.level : setdata.SetLevel,
-                            normal.level - normaladd > setdata.SetTalent1 ? normal.level - normaladd : setdata.SetTalent1,
-                            skill.level - skilladd > setdata.SetTalent2 ? skill.level - skilladd : setdata.SetTalent2,
-                            burst.level - burstadd > setdata.SetTalent3 ? burst.level - burstadd : setdata.SetTalent3);
+                            normal.level_current > setdata.SetTalent1 ? normal.level_current : setdata.SetTalent1,
+                            skill.level_current > setdata.SetTalent2 ? skill.level_current : setdata.SetTalent2,
+                            burst.level_current > setdata.SetTalent3 ? burst.level_current : setdata.SetTalent3);
                     }catch(Exception ex)
                     {
                         Log.Error($"{characters[i].id} - {characters[i].name} : {ex.Message}");

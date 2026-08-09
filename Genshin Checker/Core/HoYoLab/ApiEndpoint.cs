@@ -244,6 +244,31 @@ namespace Genshin_Checker.Core.HoYoLab
         }
 
         /// <summary>
+        /// 育成計算機のデータ取得
+        /// </summary>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        /// <exception cref="UserNotAuthenticatedException"></exception>
+        /// <exception cref="HoYoLabAPIException"></exception>
+        public async Task<Model.HoYoLab.BatchAvaterListGet.Data> BatchAvaterList(int page = 1, int size = 200)
+        {
+            if (!Account.IsAuthed) throw new UserNotAuthenticatedException(Account.UID);
+            var data = new Model.HoYoLab.BatchAvaterListPost.Root()
+            {
+                lang = Account.Culture.Name.ToLower().Split('-')[0],
+                uid = Account.UID.ToString(),
+                region = Account.Server.ToString(),
+                page = page,
+                size = size
+            };
+            var json = await GetJson.BatchAvaterList(Account, data);
+            var root = JsonChecker<Model.HoYoLab.BatchAvaterListGet.Root>.Check(json);
+            if (root.Data == null) throw new HoYoLabAPIException(root.Retcode, root.Message);
+            return root.Data;
+        }
+
+
+        /// <summary>
         /// ログボ受取
         /// </summary>
         /// <returns></returns>
@@ -526,6 +551,22 @@ namespace Genshin_Checker.Core.HoYoLab
             var json = await WebRequest.HoYoPostRequest(url, Account.Cookie, JsonConvert.SerializeObject(data));
             return json ?? "";
         }
+
+        /// <summary>
+        /// 育成計算機用キャラクター取得
+        /// </summary>
+        /// <param name="Account"></param>
+        /// <param name="data"></param>
+        /// <returns></returns>
+        public static async Task<string> BatchAvaterList(Account Account, Model.HoYoLab.BatchAvaterListPost.Root data)
+        {
+            var url = $"https://sg-act-public-api.hoyolab.com/event/e20200928calculate/v1/sync/avatar/list";
+            Log.Debug(JsonConvert.SerializeObject(data));
+            var json = await WebRequest.HoYoPostRequest(url, Account.Cookie, JsonConvert.SerializeObject(data));
+            return json ?? "";
+        }
+
+
 
         /// <summary>
         /// ログインボーナスの情報
