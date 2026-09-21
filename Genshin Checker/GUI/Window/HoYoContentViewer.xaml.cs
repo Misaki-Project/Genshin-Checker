@@ -1,4 +1,7 @@
-﻿using System;
+﻿using Genshin_Checker.Model.Misaki_chan.HoYoContent;
+using HarfBuzzSharp;
+using Microsoft.Web.WebView2.Core;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net.Http;
@@ -6,8 +9,6 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
-using Genshin_Checker.Model.Misaki_chan.HoYoContent;
-using HarfBuzzSharp;
 
 namespace Genshin_Checker.GUI.Window
 {
@@ -48,7 +49,27 @@ namespace Genshin_Checker.GUI.Window
                 args.Handled = true;
             };
 
-            if (ArticleList.Items.Count > 0) ArticleList.SelectedIndex = 0;
+            const string appReferer = "https://misaki-chan.world/";
+
+            HtmlViewer.CoreWebView2.AddWebResourceRequestedFilter(
+                "https://www.youtube.com/embed/*",
+                CoreWebView2WebResourceContext.Document
+            );
+
+            HtmlViewer.CoreWebView2.WebResourceRequested += (sender, e) =>
+            {
+                if (e.Request.Uri.StartsWith(
+                    "https://www.youtube.com/embed/",
+                    StringComparison.OrdinalIgnoreCase))
+                {
+                    e.Request.Headers.SetHeader(
+                        "Referer",
+                        appReferer
+                    );
+                }
+
+            };
+                if (ArticleList.Items.Count > 0) ArticleList.SelectedIndex = 0;
 #if !DEBUG
                 HtmlViewer.CoreWebView2.Settings.AreDevToolsEnabled = false;
 #endif
